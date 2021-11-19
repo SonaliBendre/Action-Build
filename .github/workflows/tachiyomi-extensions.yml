@@ -5,13 +5,13 @@ on:
     inputs:
       repo:
         required: true
-        default: "zhongfly/tachiyomi-extensions"
+        default: "tachiyomiorg/tachiyomi-extensions"
       ref:
         required: true
-        default: 'zhongfly'
+        default: 'master'
       extension:
         required: true
-        default: 'copymanga'
+        default: 'mangadex'
 
 jobs:
   gradle:
@@ -48,7 +48,7 @@ jobs:
         uses: gradle/gradle-command-action@v1
         env:
           CI_MULTISRC: "false"
-          CI_MATRIX_LANG: zh
+          CI_MATRIX_LANG: en
         with:
           arguments: assembleRelease
           distributions-cache-enabled: true
@@ -59,7 +59,7 @@ jobs:
         uses: r0adkll/sign-android-release@v1
         id: sign_app
         with:
-          releaseDirectory: ./src/zh/${{ github.event.inputs.extension }}/build/outputs/apk/release
+          releaseDirectory: ./src/all/${{ github.event.inputs.extension }}/build/outputs/apk/release
           signingKeyBase64: ${{ secrets.SIGN_FILE_BASE64 }}
           alias: ${{ secrets.KEY_ALIAS }}
           keyStorePassword: ${{ secrets.KEYSTORE_PASSWORD }}
