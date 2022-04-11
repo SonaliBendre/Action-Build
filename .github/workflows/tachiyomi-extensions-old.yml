@@ -1,20 +1,17 @@
-name: Build Apk
+name: Build tachiyomi-extensions(old)
 
 on: 
   workflow_dispatch:
     inputs:
-      java_version:
-        required: true
-        default: '11'
       repo:
         required: true
+        default: "zhongfly/tachiyomi-extensions"
       ref:
         required: true
-        default: 'master'
-      submodules:
+        default: 'copymanga'
+      extension:
         required: true
-        default: 'false'
-
+        default: 'copymangas'
 
 jobs:
   gradle:
@@ -28,36 +25,43 @@ jobs:
           ref: ${{ github.event.inputs.ref }}
           fetch-depth: 1 
           
-      - name: Checkout submodules
-        if: ${{ github.event.inputs.submodules != 'false' }}
-        run: git submodule update --init --recursive
+      - name: Validate Gradle Wrapper
+        uses: gradle/wrapper-validation-action@v1
 
-      - name: Prepare Java
+      - name: Set up JDK
         uses: actions/setup-java@v3
         with:
           distribution: 'zulu'
-          java-version: ${{ github.event.inputs.java_version }}
-          java-package: jdk+fx
+          java-version: 8
           cache: 'gradle'
 
-      - uses: maxim-lobanov/setup-android-tools@v1
-        with:
-          packages: |
-            platform-tools
-            platforms;android-30
-            build-tools;30.0.2
-            ndk;22.1.7171670
-          cache: true
-
-      - name: Build project
+      - name: Copy CI gradle.properties
         run: |
-          gradle wrapper
-          ./gradlew build
+          mkdir -p ~/.gradle
+          cp .github/runner-files/ci-gradle.properties ~/.gradle/gradle.properties
+          
+      - name: Clean
+        run: |
+          cd ./src/zh/
+          rm -rf `ls -I ${{ github.event.inputs.extension }}`
+          ls .
+
+      - name: Build extensions
+        uses: gradle/gradle-command-action@v2.1.5
+        env:
+          CI_MULTISRC: "false"
+          CI_MATRIX_LANG: zh
+        with:
+          arguments: assembleRelease
+          distributions-cache-enabled: true
+          dependencies-cache-enabled: true
+          configuration-cache-enabled: true
+      
       - name: Sign APK
         uses: r0adkll/sign-android-release@v1
         id: sign_app
         with:
-          releaseDirectory: app/build/outputs/apk/release
+          releaseDirectory: ./src/zh/${{ github.event.inputs.extension }}/build/outputs/apk/release
           signingKeyBase64: ${{ secrets.SIGN_FILE_BASE64 }}
           alias: ${{ secrets.KEY_ALIAS }}
           keyStorePassword: ${{ secrets.KEYSTORE_PASSWORD }}
@@ -67,7 +71,7 @@ jobs:
         uses: JantHsueh/get-apk-info-action@master
         with:
           apkPath: ${{steps.sign_app.outputs.signedReleaseFile}}
-      - name: upload artifact
+      - name: upload artifact for apk
         uses: actions/upload-artifact@v3
         if: success()
         with:
