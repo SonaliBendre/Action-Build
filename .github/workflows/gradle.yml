@@ -57,7 +57,7 @@ jobs:
 
       - name: Build project
         run: |
-          chmod+x gradlew
+          chmod +x gradlew
           gradle wrapper
           ${{ github.event.inputs.build_command }}
           
